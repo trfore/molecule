@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import shutil
 from test.b_functional.conftest import (
     idempotence,
     init_scenario,
@@ -338,6 +339,26 @@ def test_sample_collection() -> None:
         ).returncode
         == 0
     )
+
+
+def test_collection_overwrite(
+    monkeypatch: pytest.MonkeyPatch,
+    resources_folder_path,
+    tmp_path,
+):
+    """
+    Simulate running molecule within the same directory as ANSIBLE_COLLECTIONS_PATH,
+    testing for project source code overwrites
+    """
+    monkeypatch.setenv("ANSIBLE_COLLECTIONS_PATH", str(tmp_path))
+    cmd = ["molecule", "test"]
+    env = os.environ.copy()
+    resource_path = resources_folder_path
+    test_dir = tmp_path / "ansible_collections/acme/goodies"
+
+    shutil.copytree(f"{resource_path}/sample-collection", test_dir, dirs_exist_ok=True)
+
+    assert run_command(cmd, cwd=test_dir, env=env).returncode == 0
 
 
 @pytest.mark.parametrize(
